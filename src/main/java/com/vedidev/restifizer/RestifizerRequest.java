@@ -1,19 +1,26 @@
 package com.vedidev.restifizer;
 
+import android.os.AsyncTask;
 import android.util.Base64;
 import android.util.Log;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
 import com.vedidev.restifizer.exception.ExceptionFactory;
 import com.vedidev.restifizer.exception.RestifizerError;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 /**
  * Created by vedi on 20/12/15.
@@ -21,7 +28,14 @@ import java.util.Map;
  */
 public class RestifizerRequest {
 
-    private RestifizerVolleyRequest restifizerVolleyRequest;
+    private Request.Builder builder;
+    private static final int GET = 201;
+    private static final int POST = 202;
+    private static final int PUT = 203;
+    private static final int PATCH = 204;
+    private static final int DELETE = 205;
+
+    private static final MediaType APPJSON = MediaType.parse("application/json; charset=utf-8");
 
     enum AuthType {
         None,
@@ -48,13 +62,13 @@ public class RestifizerRequest {
 
     private RestifizerParams restifizerParams;
     private IErrorHandler errorHandler;
-    private final RequestQueue requestQueue;
+    private final OkHttpClient client;
 
     public RestifizerRequest(RestifizerParams restifizerParams, IErrorHandler errorHandler,
-                             RequestQueue requestQueue) {
+                             OkHttpClient client) {
         this.restifizerParams = restifizerParams;
         this.errorHandler = errorHandler;
-        this.requestQueue = requestQueue;
+        this.client = client;
 
         this.path = "";
     }
@@ -139,30 +153,30 @@ public class RestifizerRequest {
 
 
     public void get(RestifizerCallback callback) {
-        performRequest(Request.Method.GET, null, callback);
+        performRequest(GET, null, callback);
     }
 
     public void post(String jsonStr, RestifizerCallback callback) {
-        performRequest(Request.Method.POST, jsonStr, callback);
+        performRequest(POST, jsonStr, callback);
     }
 
     public void put(String jsonStr, RestifizerCallback callback) {
-        performRequest(Request.Method.PUT, jsonStr, callback);
+        performRequest(PUT, jsonStr, callback);
     }
 
     public void patch(String jsonStr, RestifizerCallback callback) {
         this.patch = true;
-        performRequest(Request.Method.POST, jsonStr, callback);
+        performRequest(PATCH, jsonStr, callback);
     }
 
     public void delete(String jsonStr, RestifizerCallback callback) {
-        performRequest(Request.Method.DELETE, jsonStr, callback);
+        performRequest(DELETE, jsonStr, callback);
     }
 
     public RestifizerRequest copy() {
 
         RestifizerRequest restifizerRequest = new RestifizerRequest(
-                restifizerParams, errorHandler, requestQueue);
+                restifizerParams, errorHandler, client);
         restifizerRequest.path = path;
         restifizerRequest.method = method;
         restifizerRequest.tag = tag;
@@ -249,39 +263,9 @@ public class RestifizerRequest {
             Log.d("query url", "url = " + url);
         }
 
-        restifizerVolleyRequest = new RestifizerVolleyRequest(method, url,
-                jsonStr, new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                RestifizerCallback callback = RestifizerRequest.this.callback;
-                if (callback != null) {
-                    callback.onCallback(new RestifizerResponse(restifizerVolleyRequest,
-                            RestifizerRequest.this.fetchList, response, tag));
-                }
-            }
-        },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError volleyError) {
-                        RestifizerError error = ExceptionFactory.createException(volleyError, tag,
-                                RestifizerRequest.this);
-
-                        if (errorHandler == null || !errorHandler.onRestifizerError(error)) {
-                            RestifizerCallback callback = RestifizerRequest.this.callback;
-                            if (callback != null) {
-                                callback.onCallback(new RestifizerResponse(
-                                        restifizerVolleyRequest,
-                                        error,
-                                        tag));
-                            }
-                        }
-                    }
-                });
-
-//patch for old android
-        if (patch) {
-            restifizerVolleyRequest.setHeader("X-HTTP-Method-Override", "PATCH");
-        }
+        builder = new Request.Builder();
+        builder.url(url);
+        initMethod();
         // Handle authentication
         if (this.authType == AuthType.Client) {
             try {
@@ -291,16 +275,75 @@ public class RestifizerRequest {
                 String encoded = Base64.encodeToString(
                         concatinated.getBytes("UTF-8"),
                         Base64.NO_WRAP);
-                restifizerVolleyRequest.setHeader("Authorization", "Basic " +
+                builder.header("Authorization", "Basic " +
                         encoded);
             } catch (UnsupportedEncodingException e) {
                 throw new IllegalStateException(e);
             }
         } else if (this.authType == AuthType.Bearer) {
-            restifizerVolleyRequest.setHeader("Authorization", "Bearer " +
+            builder.header("Authorization", "Bearer " +
                     restifizerParams.getAccessToken());
         }
 
-        requestQueue.add(restifizerVolleyRequest);
+        final Request request = builder.build();
+
+        new AsyncTask<Void, Void, Response>() {
+            @Override
+            protected Response doInBackground(Void... params) {
+                Response response = null;
+                try {
+                    response = client.newCall(request).execute();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return response;
+            }
+
+            @Override
+            protected void onPostExecute(Response response) {
+                RestifizerCallback callback = RestifizerRequest.this.callback;
+                if (callback == null) {
+                    return;
+                }
+                if (response.isSuccessful()) {
+                    try {
+                        callback.onCallback(new RestifizerResponse(request,
+                                RestifizerRequest.this.fetchList, response.body().string(), tag));
+                    } catch (IOException e) {
+                        error(request);
+                    }
+                } else {
+                    error(request);
+                }
+            }
+        }.executeOnExecutor(RestifizerManager.getInstance().getExecutor());
+    }
+
+    private void initMethod() {
+        switch (method) {
+            case GET:
+                builder.get();
+                break;
+            case POST:
+                builder.post(RequestBody.create(APPJSON, jsonStr));
+                break;
+            case PUT:
+                builder.put(RequestBody.create(APPJSON, jsonStr));
+                break;
+            case PATCH:
+                builder.patch(RequestBody.create(APPJSON, jsonStr));
+                break;
+            case DELETE:
+                builder.delete();
+                break;
+        }
+    }
+
+    private void error(Request request) {
+        RestifizerError error = ExceptionFactory.createException(null, tag,
+                RestifizerRequest.this);
+        if (errorHandler == null || !errorHandler.onRestifizerError(error)) {
+            callback.onCallback(new RestifizerResponse(request, error, tag));
+        }
     }
 }

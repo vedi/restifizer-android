@@ -1,7 +1,8 @@
 package com.vedidev.restifizer.exception;
 
-import com.android.volley.VolleyError;
 import com.vedidev.restifizer.RestifizerRequest;
+
+import okhttp3.Response;
 
 /**
  * Created by vedi on 27/12/15.
@@ -9,9 +10,9 @@ import com.vedidev.restifizer.RestifizerRequest;
  */
 public class NotFoundError extends RestifizerError {
 
-    public NotFoundError(int statusCode, VolleyError volleyError, String tag,
+    public NotFoundError(int statusCode, Response response, String tag,
                          RestifizerRequest request) {
 
-        super(statusCode, volleyError, tag, request);
+        super(statusCode, response, tag, request);
     }
 }

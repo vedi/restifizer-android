@@ -1,38 +1,36 @@
 package com.vedidev.restifizer.exception;
 
-import android.util.Log;
 
-import com.android.volley.VolleyError;
 import com.vedidev.restifizer.RestifizerRequest;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.UnsupportedEncodingException;
+import okhttp3.Response;
 
 /**
  * Created by vedi on 20/12/15.
  * Vedidev, 2015
  */
 public class RestifizerError extends Exception {
-    public VolleyError errorRaw;
+    public Response response;
     public String tag;
     public final RestifizerRequest request;
     public int statusCode = -1;
     private String rawResponse = null;
 
-    public RestifizerError(int statusCode, VolleyError error, String tag, RestifizerRequest request) {
+    public RestifizerError(int statusCode, Response response, String tag, RestifizerRequest request) {
         this.statusCode = statusCode;
-        this.errorRaw = error;
+        this.response = response;
         this.tag = tag;
         this.request = request;
         JSONObject jsonObject = null;
 
-        if (error.networkResponse != null) {
+        if (response != null) {
             try {
-                rawResponse = new String(error.networkResponse.data, "UTF-8");
+                rawResponse = response.message();
                 jsonObject = new JSONObject(rawResponse);
-            } catch (JSONException | UnsupportedEncodingException e) {
+            } catch (JSONException e) {
                 // It's not JSON or not UTF, and it's ok
             }
         }

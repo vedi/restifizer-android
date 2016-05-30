@@ -2,6 +2,8 @@ package com.vedidev.restifizer;
 
 import com.vedidev.restifizer.exception.RestifizerError;
 
+import okhttp3.Request;
+
 /**
  * Created by vedi on 20/12/15.
  * Vedidev, 2015
@@ -13,9 +15,9 @@ public class RestifizerResponse {
     public final String response;
     public final RestifizerError error;
     public final String tag;
-    public final RestifizerVolleyRequest request;
+    public final Request request;
 
-    public RestifizerResponse(RestifizerVolleyRequest request, boolean fetchList,
+    public RestifizerResponse(Request request, boolean fetchList,
                               String response, String tag) {
 
         this.isList = fetchList;
@@ -26,7 +28,7 @@ public class RestifizerResponse {
         this.tag = tag;
     }
 
-    public RestifizerResponse(RestifizerVolleyRequest request, RestifizerError error, String tag) {
+    public RestifizerResponse(Request request, RestifizerError error, String tag) {
         this.isList = false;
         this.response = null;
         this.hasError = true;
