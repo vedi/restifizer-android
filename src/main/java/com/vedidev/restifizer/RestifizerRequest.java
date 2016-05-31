@@ -310,10 +310,10 @@ public class RestifizerRequest {
                         callback.onCallback(new RestifizerResponse(request,
                                 RestifizerRequest.this.fetchList, response.body().string(), tag));
                     } catch (IOException e) {
-                        error(request);
+                        error(request, response);
                     }
                 } else {
-                    error(request);
+                    error(request, response);
                 }
             }
         }.executeOnExecutor(RestifizerManager.getInstance().getExecutor());
@@ -339,8 +339,8 @@ public class RestifizerRequest {
         }
     }
 
-    private void error(Request request) {
-        RestifizerError error = ExceptionFactory.createException(null, tag,
+    private void error(Request request, Response response) {
+        RestifizerError error = ExceptionFactory.createException(response, tag,
                 RestifizerRequest.this);
         if (errorHandler == null || !errorHandler.onRestifizerError(error)) {
             callback.onCallback(new RestifizerResponse(request, error, tag));
