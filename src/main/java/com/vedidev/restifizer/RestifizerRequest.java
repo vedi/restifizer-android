@@ -12,10 +12,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executor;
 
-import okhttp3.Call;
-import okhttp3.Callback;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -52,6 +49,7 @@ public class RestifizerRequest {
     public int pageNumber = -1;
     public int pageSize = -1;
     public boolean patch;
+    private RestifizerError error;
 
 
     private Map<String, Object> filterParams;
@@ -286,34 +284,54 @@ public class RestifizerRequest {
         }
 
         final Request request = builder.build();
-
-        new AsyncTask<Void, Void, Response>() {
+//        client.newCall(request).enqueue(new Callback() {
+//            @Override
+//            public void onFailure(Call call, IOException e) {
+//                error(request, null);
+//            }
+//
+//            @Override
+//            public void onResponse(Call call, Response response) throws IOException {
+//                if (response.isSuccessful()) {
+//                    callback.onCallback(new RestifizerResponse(request, fetchList,
+//                            response.body().string(), tag));
+//                } else {
+//                    error(request, response);
+//                }
+//            }
+//        });
+//
+        new AsyncTask<Void, Void, RestifizerResponse>() {
             @Override
-            protected Response doInBackground(Void... params) {
+            protected RestifizerResponse doInBackground(Void... params) {
+                RestifizerResponse restifizerResponse = null;
                 Response response = null;
                 try {
                     response = client.newCall(request).execute();
+                    if (response.isSuccessful()) {
+
+                        restifizerResponse = new RestifizerResponse(request,
+                                RestifizerRequest.this.fetchList,
+                                response.body().string(), tag);
+                        response.close();
+                    } else {
+                        restifizerResponse = error(request, response);
+                        response.close();
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                return response;
+                return restifizerResponse;
             }
 
             @Override
-            protected void onPostExecute(Response response) {
+            protected void onPostExecute(RestifizerResponse response) {
                 RestifizerCallback callback = RestifizerRequest.this.callback;
                 if (callback == null) {
                     return;
                 }
-                if (response.isSuccessful()) {
-                    try {
-                        callback.onCallback(new RestifizerResponse(request,
-                                RestifizerRequest.this.fetchList, response.body().string(), tag));
-                    } catch (IOException e) {
-                        error(request, response);
-                    }
-                } else {
-                    error(request, response);
+                if (error == null || !errorHandler.onRestifizerError(error)) {
+                    callback.onCallback(response);
                 }
             }
         }.executeOnExecutor(RestifizerManager.getInstance().getExecutor());
@@ -339,11 +357,16 @@ public class RestifizerRequest {
         }
     }
 
-    private void error(Request request, Response response) {
-        RestifizerError error = ExceptionFactory.createException(response, tag,
+    private RestifizerResponse error(Request request, Response response) {
+        error = ExceptionFactory.createException(response, tag,
                 RestifizerRequest.this);
-        if (errorHandler == null || !errorHandler.onRestifizerError(error)) {
-            callback.onCallback(new RestifizerResponse(request, error, tag));
+        RestifizerResponse restifizerResponse = null;
+        restifizerResponse = new RestifizerResponse(request, error, tag);
+        try {
+            response.close();
+        } catch (Exception e) {
+            //nothing to do here
         }
+        return restifizerResponse;
     }
 }
