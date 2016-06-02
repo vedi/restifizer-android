@@ -305,7 +305,7 @@ public class RestifizerRequest {
             @Override
             protected RestifizerResponse doInBackground(Void... params) {
                 RestifizerResponse restifizerResponse = null;
-                Response response = null;
+                Response response;
                 try {
                     response = client.newCall(request).execute();
                     if (response.isSuccessful()) {
@@ -326,6 +326,9 @@ public class RestifizerRequest {
 
             @Override
             protected void onPostExecute(RestifizerResponse response) {
+                if (response == null) {
+                    response = new RestifizerResponse(request, null, tag);
+                }
                 RestifizerCallback callback = RestifizerRequest.this.callback;
                 if (callback == null) {
                     return;
