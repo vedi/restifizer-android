@@ -1,6 +1,8 @@
 package com.vedidev.restifizer.exception;
 
 
+import android.util.Log;
+
 import com.vedidev.restifizer.RestifizerRequest;
 
 import org.json.JSONException;
@@ -30,12 +32,12 @@ public class RestifizerError extends Exception {
             try {
                 rawResponse = response.message();
                 jsonObject = new JSONObject(rawResponse);
-            } catch (JSONException e) {
-                // It's not JSON or not UTF, and it's ok
+                parse(jsonObject);
+            } catch (Exception e) {
+                Log.w("RestifizerError", e);
             }
         }
 
-        parse(jsonObject);
     }
 
     protected void parse(@SuppressWarnings("UnusedParameters") JSONObject jsonObject) {
