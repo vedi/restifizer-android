@@ -24,7 +24,7 @@ import okhttp3.Response;
  * Vedidev, 2015
  */
 public class RestifizerRequest {
-
+    private static final String TAG = "RestifizerRequest";
     private Request.Builder builder;
     private static final int GET = 201;
     private static final int POST = 202;
@@ -258,7 +258,7 @@ public class RestifizerRequest {
 
         if (queryStrBuilder.length() > 0) {
             url += "?" + queryStrBuilder.toString();
-            Log.d("query url", "url = " + url);
+            Log.d(TAG, "url = " + url);
         }
 
         builder = new Request.Builder();

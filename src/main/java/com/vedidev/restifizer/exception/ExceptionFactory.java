@@ -43,6 +43,9 @@ public class ExceptionFactory {
                     if (response.message().contains("authentication challenge")) {
                         statusCode = 401;
                         return new UnauthorizedError(statusCode, response, tag, request);
+                    } else if (response.message().toLowerCase().contains("unauthorized")) {
+                        statusCode = 401;
+                        return new UnauthorizedError(statusCode, response, tag, request);
                     }
                 }
                 return new RestifizerError(statusCode, null, tag, request);
