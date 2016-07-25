@@ -30,7 +30,7 @@ public class RestifizerResponse {
 
     public RestifizerResponse(Request request, RestifizerError error, String tag) {
         this.isList = false;
-        this.response = null;
+        this.response = error != null ? error.message : null;
         this.hasError = true;
         this.error = error;
         this.request = request;

@@ -19,6 +19,7 @@ public class RestifizerError extends Exception {
     public String tag;
     public final RestifizerRequest request;
     public int statusCode = -1;
+    public String message;
     private String rawResponse = null;
 
     public RestifizerError(int statusCode, Response response, String tag, RestifizerRequest request) {
@@ -31,6 +32,7 @@ public class RestifizerError extends Exception {
         if (response != null) {
             try {
                 rawResponse = response.message();
+                message = response.body().string();
                 jsonObject = new JSONObject(rawResponse);
                 parse(jsonObject);
             } catch (Exception e) {

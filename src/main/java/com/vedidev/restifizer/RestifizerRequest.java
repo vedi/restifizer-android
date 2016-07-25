@@ -316,7 +316,6 @@ public class RestifizerRequest {
                         response.close();
                     } else {
                         restifizerResponse = error(request, response);
-                        response.close();
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -363,8 +362,7 @@ public class RestifizerRequest {
     private RestifizerResponse error(Request request, Response response) {
         error = ExceptionFactory.createException(response, tag,
                 RestifizerRequest.this);
-        RestifizerResponse restifizerResponse = null;
-        restifizerResponse = new RestifizerResponse(request, error, tag);
+        RestifizerResponse restifizerResponse = new RestifizerResponse(request, error, tag);
         try {
             response.close();
         } catch (Exception e) {
