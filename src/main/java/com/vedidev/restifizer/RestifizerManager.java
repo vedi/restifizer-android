@@ -1,6 +1,13 @@
 package com.vedidev.restifizer;
 
-import com.android.volley.RequestQueue;
+
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.OkHttpClient;
+import okhttp3.internal.Util;
 
 /**
  * Created by vedi on 20/12/15.
@@ -9,9 +16,10 @@ import com.android.volley.RequestQueue;
 public class RestifizerManager implements RestifizerParams {
 
     private static RestifizerManager INSTANCE = null;
+    private static Executor executor;
 
     private String baseUrl;
-    private RequestQueue requestQueue = null;
+    private OkHttpClient client = null;
     private IErrorHandler errorHandler;
 
     private String clientId;
@@ -39,10 +47,19 @@ public class RestifizerManager implements RestifizerParams {
 
     public RestifizerRequest resourceAt(String resourceName) {
         RestifizerRequest restifizerRequest = new RestifizerRequest(
-                this, errorHandler, requestQueue);
+                this, errorHandler, client);
         restifizerRequest.fetchList = true;
         restifizerRequest.path += baseUrl + "/" + resourceName;
         return restifizerRequest;
+    }
+
+    protected Executor getExecutor() {
+        if (executor == null) {
+            executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
+                    new LinkedBlockingQueue<Runnable>(),
+                    Util.threadFactory("OkHttp Dispatcher", false));
+        }
+        return executor;
     }
 
     /* RestifizerParams */
@@ -63,8 +80,8 @@ public class RestifizerManager implements RestifizerParams {
         return this;
     }
 
-    public RestifizerManager setRequestQueue(RequestQueue requestQueue) {
-        this.requestQueue = requestQueue;
+    public RestifizerManager setClient(OkHttpClient client) {
+        this.client = client;
         return this;
     }
 

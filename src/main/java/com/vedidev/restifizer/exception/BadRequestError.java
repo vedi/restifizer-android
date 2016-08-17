@@ -1,6 +1,5 @@
 package com.vedidev.restifizer.exception;
 
-import com.android.volley.VolleyError;
 import com.vedidev.restifizer.RestifizerRequest;
 
 import org.json.JSONObject;
@@ -8,6 +7,8 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
+import okhttp3.Response;
 
 /**
  * Created by vedi on 27/12/15.
@@ -30,6 +31,7 @@ public class BadRequestError extends RestifizerError {
             this.message = message;
         }
     }
+
     private String message = null;
 
     private Oauth2Error oauth2Error = null;
@@ -38,9 +40,9 @@ public class BadRequestError extends RestifizerError {
 
     private Map<String, ValidationItem> details = null;
 
-    public BadRequestError(int statusCode, VolleyError volleyError, String tag,
+    public BadRequestError(int statusCode, Response response, String tag,
                            RestifizerRequest request) {
-        super(statusCode, volleyError, tag, request);
+        super(statusCode, response, tag, request);
     }
 
     @Override
@@ -83,7 +85,7 @@ public class BadRequestError extends RestifizerError {
             Iterator<String> keys = detailsJson.keys();
             while (keys.hasNext()) {
                 String key = keys.next();
-                JSONObject fieldJson =  detailsJson.optJSONObject(key);
+                JSONObject fieldJson = detailsJson.optJSONObject(key);
                 String message = fieldJson.optString("message", null);
 
                 ValidationItem validationItem = new ValidationItem(key, message);

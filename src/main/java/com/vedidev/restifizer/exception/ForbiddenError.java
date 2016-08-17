@@ -1,7 +1,8 @@
 package com.vedidev.restifizer.exception;
 
-import com.android.volley.VolleyError;
 import com.vedidev.restifizer.RestifizerRequest;
+
+import okhttp3.Response;
 
 
 /**
@@ -9,8 +10,8 @@ import com.vedidev.restifizer.RestifizerRequest;
  * Vedidev, 2015
  */
 public class ForbiddenError extends RestifizerError {
-    public ForbiddenError(int statusCode, VolleyError volleyError, String tag,
+    public ForbiddenError(int statusCode, Response response, String tag,
                           RestifizerRequest request) {
-        super(statusCode, volleyError, tag, request);
+        super(statusCode, response, tag, request);
     }
 }
