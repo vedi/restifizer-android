@@ -1,11 +1,8 @@
 package com.vedidev.restifizer.exception;
 
 
-import android.util.Log;
-
 import com.vedidev.restifizer.RestifizerRequest;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import okhttp3.Response;
@@ -20,30 +17,31 @@ public class RestifizerError extends Exception {
     public final RestifizerRequest request;
     public int statusCode = -1;
     public String message;
-    private String rawResponse = null;
+    public String rawResponse = null;
 
     public RestifizerError(int statusCode, Response response, String tag, RestifizerRequest request) {
         this.statusCode = statusCode;
         this.response = response;
         this.tag = tag;
         this.request = request;
-        JSONObject jsonObject = null;
+        JSONObject jsonObject;
 
         if (response != null) {
             try {
-                rawResponse = response.message();
-                message = response.body().string();
-                jsonObject = new JSONObject(rawResponse);
+                this.rawResponse = response.message();
+                jsonObject = new JSONObject(response.body().string());
                 parse(jsonObject);
             } catch (Exception e) {
-                Log.w("RestifizerError", e);
+                //nothing to do here
             }
         }
 
     }
 
     protected void parse(@SuppressWarnings("UnusedParameters") JSONObject jsonObject) {
-
+        if (jsonObject != null) {
+            this.message = jsonObject.optString("message", null);
+        }
     }
 
     @Override
