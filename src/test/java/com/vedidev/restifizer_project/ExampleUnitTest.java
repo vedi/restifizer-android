@@ -1,4 +1,4 @@
-package com.vedidev.restifizer;
+package com.vedidev.restifizer_project;
 
 import org.junit.Test;
 
